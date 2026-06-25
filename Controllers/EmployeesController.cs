@@ -10,67 +10,55 @@ namespace EmployeeApi.Controllers;
 [Route("api/[controller]")]
 public class EmployeesController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
-
-    public EmployeesController(ApplicationDbContext context)
-    {
-        _context = context;
-    }
+    private static readonly List<Employee> _mockDatabase = new List<Employee>();
+    private static int _nextId = 1;
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Employee>>> GetEmployees()
     {
-        // Temporarily bypassing the database connection due to Supabase pooler propagation issues
-        return Ok(new List<Employee>());
+        return Ok(_mockDatabase);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Employee>> GetEmployee(int id)
     {
-        var employee = await _context.Employees.Include(e => e.Department).FirstOrDefaultAsync(e => e.Id == id);
+        var employee = _mockDatabase.FirstOrDefault(e => e.Id == id);
 
         if (employee == null)
         {
             return NotFound();
         }
 
-        return employee;
+        return Ok(employee);
     }
 
     [HttpPost]
-    public async Task<ActionResult<Employee>> CreateEmployee(Employee employee)
+    public async Task<ActionResult<Employee>> PostEmployee(Employee employee)
     {
-        _context.Employees.Add(employee);
-        await _context.SaveChangesAsync();
+        employee.Id = _nextId++;
+        _mockDatabase.Add(employee);
 
         return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employee);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateEmployee(int id, Employee employee)
+    public async Task<IActionResult> PutEmployee(int id, Employee employee)
     {
         if (id != employee.Id)
         {
             return BadRequest();
         }
 
-        _context.Entry(employee).State = EntityState.Modified;
+        var existing = _mockDatabase.FirstOrDefault(e => e.Id == id);
+        if (existing == null)
+        {
+            return NotFound();
+        }
 
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!EmployeeExists(id))
-            {
-                return NotFound();
-            }
-            else
-            {
-                throw;
-            }
-        }
+        existing.FirstName = employee.FirstName;
+        existing.LastName = employee.LastName;
+        existing.Email = employee.Email;
+        existing.DepartmentId = employee.DepartmentId;
 
         return NoContent();
     }
@@ -78,20 +66,14 @@ public class EmployeesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteEmployee(int id)
     {
-        var employee = await _context.Employees.FindAsync(id);
+        var employee = _mockDatabase.FirstOrDefault(e => e.Id == id);
         if (employee == null)
         {
             return NotFound();
         }
 
-        _context.Employees.Remove(employee);
-        await _context.SaveChangesAsync();
+        _mockDatabase.Remove(employee);
 
         return NoContent();
-    }
-
-    private bool EmployeeExists(int id)
-    {
-        return _context.Employees.Any(e => e.Id == id);
     }
 }

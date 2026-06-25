@@ -6,7 +6,6 @@ using EmployeeApi.Models;
 
 namespace EmployeeApi.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class EmployeesController : ControllerBase

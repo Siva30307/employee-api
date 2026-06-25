@@ -57,4 +57,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapGet("/api/debug", (IConfiguration config) => 
+{
+    return Results.Ok(new { ConnectionString = config.GetConnectionString("DefaultConnection") });
+});
+
 app.Run();
